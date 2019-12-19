@@ -65,6 +65,11 @@ app.get("/secrets", (req, res) => {
     }
 });
 
+app.get("/logout", (req, res) => {
+    req.logout();
+    res.redirect("/");
+  });
+
 app.post("/register", (req, res) => {
 
     /*
@@ -97,26 +102,21 @@ app.post("/register", (req, res) => {
 });
 
 app.post("/login", (req, res) => {
-    /*
-    const username = req.body.username;
-    const password = req.body.password;
+    const user = new User({
+        username: req.body.username,
+        password: req.body.password
+    });
 
-    User.findOne({ email: username }, (err, foundUser) => {
-        if (err) {
-            console.log(err);
+    req.login(user, err => {
+        if (!err) {
+            passport.authenticate("local")(req, res, () => {
+                res.redirect("/secrets");
+            });
         } else {
-            if (foundUser) {
-                bcrypt.compare(password, foundUser.password, (err, result) => {
-                    if (result === true) {
-                        res.render("secrets");
-                    } else {
-                        console.log(err);
-                    }
-                });
-            }
+            console.log(err);
         }
     });
-    */
+
 });
 
 app.listen(3000, () => console.log("Server is running on port 3000."));
