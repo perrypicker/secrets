@@ -3,11 +3,11 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const mongoose = require("mongoose");
-const bcrypt = require("bcrypt");
-const saltRounds = 10;
 const session = require("express-session");
 const passport = require("passport");
 const passportLocalMongoose = require("passport-local-mongoose");
+const GoogleStrategy = require("passport-google-oauth").OAuthStrategy;
+const findOrCreate = require("mongoose-findorcreate");
 
 const app = express();
 
@@ -71,23 +71,6 @@ app.get("/logout", (req, res) => {
   });
 
 app.post("/register", (req, res) => {
-
-    /*
-    bcrypt.hash(req.body.password, saltRounds, (err, hash) => {
-        const newUser = new User({
-            email: req.body.username,
-            password: hash
-        });
-
-        newUser.save(err => {
-            if (err) {
-                console.log(err);
-            } else {
-                res.render("secrets");
-            }
-        });
-    });
-    */
 
     User.register({ username: req.body.username }, req.body.password, (err, user) => {
         if (err) {
