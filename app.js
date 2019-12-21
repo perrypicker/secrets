@@ -32,27 +32,40 @@ mongoose.set("useCreateIndex", true);
 // mongoose schemas
 const userSchema = new mongoose.Schema({
     email: String,
-    password: String
+    password: String,
+    googleId: String
 });
 
+// passportjs + mongoose required plugins
 userSchema.plugin(passportLocalMongoose);
 userSchema.plugin(findOrCreate);
 
 // mongoose models
 const User = new mongoose.model("User", userSchema);
 
+// passportjs use method
 passport.use(User.createStrategy());
 
-passport.serializeUser(User.serializeUser());
-passport.deserializeUser(User.deserializeUser());
+// passportjs serialize and deserialize methods
+passport.serializeUser((user, done) => {
+    done(null, user.id);
+});
 
+passport.deserializeUser((id, done) => {
+    User.findById(id, (err, user) => {
+        done(err, user);
+    });
+});
+
+// passportjs google oauth 2.0 strategy
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: "http://localhost:3000/auth/google/secrets",
-    userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo"
+    callbackURL: "http://localhost:3000/auth/google/secrets"
 },
     (accessToken, refreshToken, profile, done) => {
+        console.log(profile);
+        
         User.findOrCreate({ googleId: profile.id }, (err, user) => {
             return done(err, user);
         });
@@ -63,7 +76,15 @@ app.get("/", (req, res) => {
     res.render("home");
 });
 
+// google oauth 2.0 authentitcation process with passportjs
 app.get("/auth/google", passport.authenticate("google", { scope: ["https://www.googleapis.com/auth/plus.login"] }));
+
+app.get("/auth/google/secrets",
+    passport.authenticate("google", { failureRedirect: "/login" }),
+    (req, res) => {
+        res.redirect("/secrets");
+    }
+);
 
 app.get("/register", (req, res) => {
     res.render("register");
