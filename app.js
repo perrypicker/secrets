@@ -63,9 +63,8 @@ app.get("/", (req, res) => {
     res.render("home");
 });
 
-app.get("/auth/google", (req, res) => {
-    passport.authenticate("google", { scope: ["https://www.googleapis.com/auth/plus.login"] });
-});
+app.get("/auth/google", passport.authenticate("google", { scope: ["https://www.googleapis.com/auth/plus.login"] }));
+
 
 app.get("/register", (req, res) => {
     res.render("register");
