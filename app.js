@@ -7,17 +7,18 @@ const session = require("express-session");
 const passport = require("passport");
 const passportLocalMongoose = require("passport-local-mongoose");
 const GoogleStrategy = require("passport-google-oauth").OAuth2Strategy;
+const FacebookStrategy = require("passport-facebook").Strategy;
 const findOrCreate = require("mongoose-findorcreate");
 
 const app = express();
 
-app.set('view engine', 'ejs');
+app.set("view engine", "ejs");
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
 app.use(session({
-    secret: "Our little secret.",
+    secret: process.env.SECRET,
     resave: false,
     saveUninitialized: false
 }));
@@ -33,7 +34,8 @@ mongoose.set("useCreateIndex", true);
 const userSchema = new mongoose.Schema({
     email: String,
     password: String,
-    googleId: String
+    googleId: String,
+    facebookId: String
 });
 
 // passportjs + mongoose required plugins
@@ -61,13 +63,27 @@ passport.deserializeUser((id, done) => {
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: "http://localhost:3000/auth/google/secrets"
+    callbackURL: process.env.GOOGLE_CLIENT_URL
 },
     (accessToken, refreshToken, profile, done) => {
-        console.log(profile);
-        
         User.findOrCreate({ googleId: profile.id }, (err, user) => {
             return done(err, user);
+        });
+    }
+));
+
+// passportjs facebook oauth 2.0 strategy
+passport.use(new FacebookStrategy({
+    clientID: process.env.FACEBOOK_APP_ID,
+    clientSecret: process.env.FACEBOOK_APP_SECRET,
+    callbackURL: process.env.FACEBOOK_APP_URL
+},
+    (accessToken, refreshToken, profile, done) => {
+        User.findOrCreate({ facebookId: profile.id }, (err, user) => {
+            if (err) {
+                return done(err);
+            }
+            done(null, user);
         });
     }
 ));
@@ -76,7 +92,7 @@ app.get("/", (req, res) => {
     res.render("home");
 });
 
-// google oauth 2.0 authentitcation process with passportjs
+// google oauth 2.0 authentication process with passportjs
 app.get("/auth/google", passport.authenticate("google", { scope: ["https://www.googleapis.com/auth/plus.login"] }));
 
 app.get("/auth/google/secrets",
@@ -84,6 +100,16 @@ app.get("/auth/google/secrets",
     (req, res) => {
         res.redirect("/secrets");
     }
+);
+
+// facebook oauth 2.0 authentication process with passportjs
+app.get("/auth/facebook", passport.authenticate("facebook"));
+
+app.get("/auth/facebook/secrets",
+    passport.authenticate("facebook", {
+        successRedirect: "/secrets",
+        failureRedirect: "/login"
+    })
 );
 
 app.get("/register", (req, res) => {
